@@ -1,1 +1,456 @@
-index.html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>منيو الطلبات</title>
+  <style>
+    :root{
+      --bg:#f7f7f8; --card:#ffffff; --muted:#6b7280; --text:#111827; --brand:#16a34a; --brand-600:#15803d; --border:#e5e7eb; --chip:#f3f4f6;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial; background:var(--bg); color:var(--text)}
+    html, body { overflow-x: hidden; }
+
+    .container{max-width:1120px;margin:0 auto;padding:16px}
+    header{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.8);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid var(--border)}
+    header .wrap{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 16px}
+    .brand{display:flex;align-items:center;gap:8px;font-weight:700}
+    .brand .logo{width:24px;height:24px;border-radius:6px;background:var(--brand)}
+
+    .search{position:relative;max-width:520px;width:100%}
+    .search input{width:100%;padding:12px 40px 12px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff}
+    .search .icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);opacity:.6}
+
+   
+    .btn{appearance:none;border:0;background:var(--brand);color:#fff;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn:hover{background:var(--brand-600)}
+    .btn-outline{background:#fff;color:var(--text);border:1px solid var(--border)}
+    .btn-outline:hover{border-color:#cbd5e1}
+    .btn-icon{width:36px;height:36px;display:grid;place-items:center}
+    #toggleCartBtn{display:inline-flex;align-items:center;gap:6px}
+    @media (min-width:992px){ #toggleCartBtn{display:none} } 
+
+    main{display:grid;grid-template-columns:1fr;gap:16px;padding:20px 0}
+    @media (min-width:992px){main{grid-template-columns:2fr 1fr;gap:24px}}
+
+    h2{margin:0 0 10px;font-size:18px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media (min-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (min-width:1200px){.grid{grid-template-columns:repeat(3,1fr)}}
+
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    .card-img{height:160px;overflow:hidden}
+    .card-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+    .card:hover .card-img img{transform:scale(1.05)}
+    .card-body{padding:12px}
+    .row{display:flex;align-items:start;justify-content:space-between;gap:12px}
+    .title{font-weight:700}
+    .desc{color:var(--muted);font-size:12px;margin:6px 0 0}
+    .price{white-space:nowrap;font-weight:700}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .chip{font-size:10px;background:var(--chip);border:1px solid var(--border);padding:4px 8px;border-radius:999px}
+    .controls{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+    .qty{display:flex;align-items:center;gap:8px}
+
+    aside .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px}
+    .panel .panel-body{padding:12px}
+    .panel .head{display:flex;align-items:center;justify-content:space-between}
+    .muted{color:var(--muted);font-size:13px}
+    .cart-item{display:flex;gap:10px;align-items:center}
+    .cart-item img{width:48px;height:48px;border-radius:10px;object-fit:cover}
+    .cart-title{font-size:13px;font-weight:700}
+    .cart-line{display:flex;align-items:center;justify-content:space-between}
+    .divider{border-top:1px solid var(--border);margin:10px 0}
+
+    aside.drawer{position:fixed; top:0; right:0; width:88vw; max-width:420px; height:100dvh; background:var(--bg); border-left:1px solid var(--border); padding:16px; z-index:50; transform:translateX(100%); transition:transform .3s ease}
+    aside.drawer.open{transform:translateX(0)}
+    @media (min-width:992px){
+      aside.drawer{position:static; width:auto; height:auto; transform:none; border:0; padding:0; background:transparent}
+    }
+    #backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); backdrop-filter:blur(2px); z-index:45; display:none}
+    #backdrop.show{display:block}
+
+    dialog{border:0;border-radius:14px;max-width:640px;width:96vw}
+    dialog::backdrop{background:rgba(0,0,0,.3)}
+    .d-body{padding:16px}
+    .d-row{display:grid;grid-template-columns:1fr 80px 120px;gap:8px;font-size:14px}
+    .d-row.head{font-weight:700}
+
+    #printSummary{display:none}
+    @media print{ body *{visibility:hidden} #printSummary, #printSummary *{visibility:visible} #printSummary{position:absolute;inset:0;padding:20px;background:#fff} }
+    .success{display:none;margin-top:8px;color:#16a34a;font-size:13px}
+    .success.show{display:flex;align-items:center;gap:6px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap container">
+      <div class="brand"><span class="logo"></span><span>منيو</span></div>
+
+      <div class="search">
+        <input id="searchInput" type="search" placeholder="ابحث عن طبق، مكوّن أو وسم (مثال: ببروني / نباتي)" />
+        <span class="icon">🔎</span>
+      </div>
+
+      <button id="toggleCartBtn" class="btn btn-outline">🧺 السلة (<span id="cartBadge">0</span>)</button>
+    </div>
+  </header>
+
+  <div id="backdrop"></div>
+
+  <div class="container">
+    <main>
+      <section id="menuList" class="space-y"></section>
+
+      <aside id="cartDrawer" class="drawer">
+        <div class="panel">
+          <div class="panel-body">
+            <div class="head">
+              <strong>سلة الطلبات</strong>
+              <button class="btn btn-outline" id="clearCartBtn">🗑️ تفريغ</button>
+            </div>
+            <div id="cartItems" class="space-y" style="margin-top:10px"></div>
+            <div class="divider"></div>
+            <div class="cart-line"><span class="muted">المجموع</span><strong id="subtotal">0</strong></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-body">
+            <strong>بيانات العميل</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+              <input id="clientName" placeholder="اسم العميل" />
+              <input id="clientPhone" placeholder="رقم الهاتف" />
+              <input id="clientTable" placeholder="رقم الطاولة (اختياري)" />
+            </div>
+            <textarea id="notes" placeholder="ملاحظات إضافية (درجة الاستواء/بدون مخلل...)" style="width:100%;height:90px;margin-top:10px"></textarea>
+            <button id="reviewBtn" class="btn" style="width:100%;margin-top:10px">مراجعة الطلب</button>
+            <div id="successMsg" class="success">✅ تم إرسال الطلب </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <dialog id="reviewDialog">
+    <div class="d-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <h3 style="margin:0">مراجعة وتأكيد</h3>
+        <button id="closeDialog" class="btn btn-outline">إغلاق</button>
+      </div>
+      <div class="divider"></div>
+      <div class="d-row head">
+        <div>الصنف</div>
+        <div>الكمية</div>
+        <div style="text-align:right">السعر</div>
+      </div>
+      <div id="reviewItems" style="margin-top:6px"></div>
+      <div class="divider"></div>
+      <div class="cart-line"><span>الإجمالي</span><strong id="reviewTotal">0</strong></div>
+      <div style="background:#f9fafb;padding:10px;border-radius:10px;margin-top:10px;font-size:14px">
+        <div>👤 <b>العميل:</b> <span id="rName">—</span></div>
+        <div>📞 <b>الهاتف:</b> <span id="rPhone">—</span></div>
+        <div>🍽️ <b>طاولة:</b> <span id="rTable">—</span></div>
+        <div>📝 <b>ملاحظات:</b> <span id="rNotes">—</span></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="confirmBtn" class="btn" style="flex:1">تأكيد وإرسال</button>
+        <button id="printBtn" class="btn btn-outline" style="flex:1">طباعة الملخّص</button>
+      </div>
+    </div>
+  </dialog>
+
+  <section id="printSummary"></section>
+
+  <script>
+    const menuData = [
+      {category: "الشاورما", items: [
+        { id: "sh1", name: "ساندويش شاورما عادي", price: 0.75, img: "https://kitchen.sayidaty.net/uploads/small/d1/d1d824f354a847678aaf1c1ac1e3e1e5_w750_h750.jpg", desc: "", tags: ["شعبي"] },
+        { id: "sh2", name: "ساندويش شاورما سوبر", price: 1.25, img: "https://kitchen.sayidaty.net/uploads/small/d1/d1d824f354a847678aaf1c1ac1e3e1e5_w750_h750.jpg", desc: "", tags: ["شعبي"] },
+        { id: "sh3", name: "وجبة شاورما عادي", price: 2.25, img: "https://images.deliveryhero.io/image/talabat/MenuItems/meal637789004838753914.jpg", desc: "كاتشب ، مايونيز ، مخلل، بطاطا", tags: ["شعبي"] },
+        { id: "sh4", name: "وجبة شاورما سوبر", price: 3.00, img: "https://images.taker.io/taker_almathaqalrefi/1691361815_5YeqS2.jpg", desc: "كاتشب ، مايونيز ، مخلل، بطاطا", tags: ["شعبي"] },
+        { id: "sh5", name: "صدر شاورما عائلي 3 اشخاص", price: 8.00, img: "https://cdn.alweb.com/thumbs/jeeran/article/fit710x532/%D9%85%D8%B7%D8%A7%D8%B9%D9%85-%D8%B4%D8%A7%D9%88%D8%B1%D9%85%D8%A7-%D9%81%D9%8A-%D8%B9%D8%A8%D8%AF%D9%88%D9%86.jpg", desc: "بطاطا ، مخلل ، كاتشب ، مايونيز ، كولا", tags: ["شعبي"] },
+        { id: "sh6", name: "صدر شاورما 5 اشخاص ", price: 12.00, img: "https://tge-demos.com/qrsystemo/upload/productImages/286-308/25.jpg?t=2022-10-11%2009:43:05", desc: "بطاطا ، مخلل ، كاتشب ، مايونيز ، كولا", tags: ["شعبي"] },
+        { id: "sh7", name: "الوجبة العائلية الذهبية ", price: 16.00, img: "https://goldenmeal.jo/Upload/Cat/5cb26d04-6fdb-47be-a30e-0bcf2adc6378.jpg", desc: "8 ساندويش سوبر ، بطاطا ، كاتشب ، مايونيز ، مخلل ، كولا ، ماء", tags: ["شعبي"] }
+      ]},
+      {category: "البيتزا", items: [
+        { id: "pz1", name: "بيتزا مارغريتا", price: 4.00, img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaW3wg0IypdhSbOnm5AphMUVrFbxE8Vm5Zvw&s", desc: "صلصة طماطم، موزاريلا، ريحان طازج.", tags: ["شعبي", "نباتي"] },
+        { id: "pz2", name: "بيتزا ببروني", price: 5.00, img: "https://static.webteb.net/images/content/ramadanrecipe_recipe_1053_123c7523810-92e7-48f4-88e5-c47d5c01c99c.jpg", desc: "ببروني مدخّن، جبنة موزاريلا.", tags: ["الأكثر طلباً"] },
+        { id: "pz3", name: "بيتزا بالخضار", price: 3.50, img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQshBqbQ2A39W5HZ6cr7AkeIP-T5aAevno0tg&s", desc: "زيتون ، فلفل حلو ، موزاريلا ، ذرة ،نقانق ، فطر .", tags: ["الأكثر شيوعاً"] },
+        { id: "pz4", name: "بيتزا بالتونا", price: 7.00, img: "https://kitchen.sayidaty.net/uploads/small/fc/fc1c01c6cdcce715a943c27b5dceaa67_w750_h500.jpg", desc: "شرائح التونا ، زيتون ،موزاريلا .", tags: ["يوصى به "] }
+      ]},
+      {category: "البرغر", items: [
+        { id: "bg1", name: "برغر لحم كلاسيك", price: 3.50, img: "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1200&auto=format&fit=crop", desc: "لحم بقري طازج، جبنة، خس، صوص خاص.", tags: ["مميز"] },
+        { id: "bg2", name: "برغر دجاج كرسبي", price: 3.25, img: "https://www.atyabtabkha.com/wp-content/uploads/2021/10/18747c12776451248673e4448a7c56966ea5e918.jpg", desc: "دجاج مقرمش، مايونيز، خيار مخلّل.", tags: ["قيمة ممتازة"] },
+        { id: "bg3", name: "عرض الكنج", price: 15.00, img: "https://media.istockphoto.com/id/1063361002/photo/gluten-free-beef-sliders-and-gluten-free-buns.jpg?s=612x612&w=0&k=20&c=1Qa4wjN8f8zVE-VW6eA1o5-YZms1aoyCsSNlgYJe6OY=", desc: "3 برغر لحم جابو ، 3 بطاطا ، 3 كولا", tags: ["عرض العائلة"] }
+      ]},
+      {category: "باستا & أطباق جانبية", items: [
+        { id: "ps1", name: "باستا ألفريدو", price: 4.25, img: "https://cdn1-m.zahratalkhaleej.ae/store/archive/image/2022/9/7/b609270f-5411-441b-92e8-3ed35c9069ce.jpg?format=jpg&preset=w1900", desc: "كريمة، جبنة بارميزان، فطر.", tags: ["كريمي"] },
+        { id: "sd1", name: "بطاطا مقلية", price: 1.25, img: "https://kitchen.sayidaty.net/uploads/small/de/de298921167dc40210659f6aadf48ce8_w750_h750.jpg", desc: "مقرمشة ذهبية مع تتبيلة خفيفة.", tags: ["شعبي"] },
+        { id: "ps2", name: "تبولة", price: 1.5, img: "https://m.hasa-kitchen.com/wp-content/uploads/2022/04/16077819253017_.jpg", desc: "", tags: [""] },
+        { id: "ps3", name: "سلطة خضار", price: 1.5, img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTiLk0pUINtJcqTq8kY1FJfoPX65gzDywohA&s", desc: "", tags: [""] },
+        { id: "ps8", name: "سلطة يونانية", price: 1.5, img: "https://kitchen.sayidaty.net/uploads/small/6b/6bc6a2aa14b12c8c6dd5581603541687_w750_h750.jpg", desc: ".", tags: [""] },
+        { id: "ps4", name: "سلطة التونا والخضار", price: 2.25 , img: "https://img.youm7.com/ArticleImgs/2017/6/23/84512-%D8%B7%D8%B1%D9%8A%D9%82%D8%A9-%D8%B9%D9%85%D9%84-%D8%B3%D9%84%D8%B7%D8%A9%D8%A7-%D9%84%D8%AA%D9%88%D9%86%D8%A91.jpeg", desc: "شرائح التونا مع قطع الخضار.", tags: [""] },
+        { id: "ps5", name: "كول سلو", price: 1.5, img: "https://www.justfood.tv/UserFiles/sa25042023.jpg", desc: "ملفوف ابيض ، جزر ، مايونيز.", tags: [""] },
+        { id: "ps6", name: "سلطة الشمندر", price: 2.00, img: "https://www.justfood.tv/big/Beets%20salad.jpg", desc: "", tags: [""] },
+        { id: "ps7", name: "لبن زبادي", price: 0.75, img: "https://upload.wikimedia.org/wikipedia/commons/2/23/Cacik-1.jpg", desc: "", tags: [""] }
+      ]},
+      {category: "مشروبات", items: [
+        { id: "dr1", name: "عصير برتقال طازج", price: 1.50, img: "https://vid.alarabiya.net/images/2014/01/01/eb353d30-5d4e-4f88-9bda-6e8480576771/eb353d30-5d4e-4f88-9bda-6e8480576771.jpg?crop=4:3&width=1200", desc: "معصور يومياً بدون سكر مضاف.", tags: ["طبيعي"] },
+        { id: "pc1", name: "كولا", price: 0.4, img: "https://vid.alarabiya.net/images/2024/06/30/a066a729-1460-43ec-aab1-12c277fc63a6/a066a729-1460-43ec-aab1-12c277fc63a6.jpg?crop=4:3&width=1200", desc: "عبوة 250 مل", tags: [""] },
+        { id: "pc2", name: "فانتا", price: 0.4, img: "https://dokan.ps/wp-content/uploads/2020/12/%D9%81%D8%A7%D9%86%D8%AA%D8%A7-%D8%A8%D8%B1%D8%AA%D9%82%D8%A7%D9%84-150%D9%85%D9%84.jpg", desc: "عبوة 250 مل", tags: [""] },
+        { id: "pc3", name: "سبرايت", price: 0.4, img: "https://m.media-amazon.com/images/I/61BI+LRo68L._UF1000,1000_QL80_.jpg", desc: "عبوة 250 مل", tags: [""] },
+        { id: "pc4", name: "شنينة", price: 0.6, img: "https://jebnalak.com/cdn/shop/products/Untitled-2021-09-15T093304.318_800x.jpg?v=1631687595", desc: "عبوة 250 مل", tags: [""] },
+        { id: "pc5", name: "عصير المراعي", price: 0.50, img: "https://cdn.salla.sa/rnzlp/DlIlk8QtOCjJcjXHlh8Jo51dOsbrfVNE0bU2oS2a.jpg", desc: "عبوة 250 مل", tags: [""] },
+        { id: "dr2", name: "ماء", price: 0.50, img: "https://png.pngtree.com/thumb_back/fh260/background/20240522/pngtree-a-large-bottle-of-pure-water-on-blue-background-image_15674939.jpg", desc: "قنينة 500 مل.", tags: [] }
+      ]}
+    ];
+
+    const state = { cart: {} };
+
+    const formatPrice = (n) => new Intl.NumberFormat("ar-JO", { style: "currency", currency: "JOD" }).format(n);
+
+    const menuList = document.getElementById('menuList');
+    const searchInput = document.getElementById('searchInput');
+    const cartItems = document.getElementById('cartItems');
+    const subtotalEl = document.getElementById('subtotal');
+    const clearCartBtn = document.getElementById('clearCartBtn');
+    const reviewBtn = document.getElementById('reviewBtn');
+    const successMsg = document.getElementById('successMsg');
+
+    const clientName = document.getElementById('clientName');
+    const clientPhone = document.getElementById('clientPhone');
+    const clientTable = document.getElementById('clientTable');
+    const notes = document.getElementById('notes');
+
+    const reviewDialog = document.getElementById('reviewDialog');
+    const closeDialog = document.getElementById('closeDialog');
+    const reviewItems = document.getElementById('reviewItems');
+    const reviewTotal = document.getElementById('reviewTotal');
+    const rName = document.getElementById('rName');
+    const rPhone = document.getElementById('rPhone');
+    const rTable = document.getElementById('rTable');
+    const rNotes = document.getElementById('rNotes');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const printBtn = document.getElementById('printBtn');
+    const printSummary = document.getElementById('printSummary');
+
+    const toggleCartBtn = document.getElementById('toggleCartBtn');
+    const cartDrawer = document.getElementById('cartDrawer');
+    const backdrop = document.getElementById('backdrop');
+    const cartBadge = document.getElementById('cartBadge');
+
+    function renderMenu(data){
+      menuList.innerHTML = '';
+      (data || menuData).forEach(group => {
+        const section = document.createElement('section');
+        const h = document.createElement('h2'); h.textContent = group.category; section.appendChild(h);
+        const grid = document.createElement('div'); grid.className = 'grid'; section.appendChild(grid);
+        group.items.forEach(item => {
+          const card = document.createElement('div'); card.className = 'card'; card.dataset.id = item.id;
+          card.innerHTML = `
+            <div class="card-img"><img src="${item.img}" alt="${item.name}" loading="lazy"></div>
+            <div class="card-body">
+              <div class="row">
+                <div>
+                  <div class="title">${item.name}</div>
+                  <div class="desc">${item.desc}</div>
+                </div>
+                <div class="price">${formatPrice(item.price)}</div>
+              </div>
+              <div class="chips">${item.tags.map(t=>`<span class="chip">#${t}</span>`).join('')}</div>
+              <div class="controls">
+                <div class="qty">
+                  <button class="btn btn-outline btn-icon" data-action="dec">−</button>
+                  <span class="qval" data-qfor="${item.id}" style="width:32px;text-align:center;font-weight:700">${state.cart[item.id]?.qty||0}</span>
+                  <button class="btn btn-outline btn-icon" data-action="inc">＋</button>
+                </div>
+                <button class="btn" data-action="add">أضف للسلة</button>
+              </div>
+            </div>`;
+          grid.appendChild(card);
+        });
+        menuList.appendChild(section);
+      });
+    }
+
+    function updateQtyDisplays(){
+      document.querySelectorAll('.qval').forEach(span => {
+        const id = span.getAttribute('data-qfor');
+        span.textContent = state.cart[id]?.qty || 0;
+      });
+    }
+
+    function updateCartBadge(){
+      const count = Object.values(state.cart).reduce((s,{qty})=>s+qty,0);
+      cartBadge.textContent = count;
+    }
+
+    function renderCart(){
+      const lines = Object.values(state.cart);
+      if(lines.length === 0){
+        cartItems.innerHTML = '<div class="muted">السلة فارغة.</div>';
+      } else {
+        cartItems.innerHTML = lines.map(({item, qty}) => `
+          <div class="cart-item">
+            <img src="${item.img}" alt="${item.name}" />
+            <div style="flex:1">
+              <div class="cart-line"><span class="cart-title">${item.name}</span><span class="muted">${formatPrice(item.price)}</span></div>
+              <div class="qty" style="margin-top:6px">
+                <button class="btn btn-outline btn-icon" data-action="dec" data-id="${item.id}">−</button>
+                <span style="width:28px;text-align:center;font-weight:700">${qty}</span>
+                <button class="btn btn-outline btn-icon" data-action="inc" data-id="${item.id}">＋</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+      const subtotal = lines.reduce((s,{item,qty}) => s + item.price*qty, 0);
+      subtotalEl.textContent = formatPrice(subtotal);
+      updateQtyDisplays();
+      updateCartBadge();
+    }
+
+    function changeQty(id, delta){
+      const cur = state.cart[id]?.qty || 0;
+      const next = Math.max(0, cur + delta);
+      if(next === 0){ delete state.cart[id]; }
+      else {
+        const item = state.cart[id]?.item || findItem(id);
+        state.cart[id] = { item, qty: next };
+      }
+      renderCart();
+    }
+
+    function addToCart(item){
+      const cur = state.cart[item.id]?.qty || 0;
+      state.cart[item.id] = { item, qty: cur + 1 };
+      renderCart();
+    }
+
+    function findItem(id){
+      for(const g of menuData){
+        const it = g.items.find(x => x.id === id);
+        if(it) return it;
+      }
+      return null;
+    }
+
+    menuList.addEventListener('click', (e)=>{
+      const card = e.target.closest('.card');
+      if(!card) return;
+      const id = card.dataset.id;
+      if(e.target.matches('[data-action="inc"]')) changeQty(id, +1);
+      if(e.target.matches('[data-action="dec"]')) changeQty(id, -1);
+      if(e.target.matches('[data-action="add"]')) {
+        const item = findItem(id); if(item) addToCart(item);
+      }
+    });
+
+    cartItems.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-action]');
+      if(!btn) return;
+      const id = btn.getAttribute('data-id');
+      if(btn.dataset.action === 'inc') changeQty(id, +1);
+      if(btn.dataset.action === 'dec') changeQty(id, -1);
+    });
+
+    clearCartBtn.addEventListener('click', ()=>{ state.cart = {}; renderCart(); });
+
+    function filterMenu(q){
+      q = q.trim().toLowerCase();
+      if(!q) return menuData;
+      const words = q.split(/\s+/).filter(Boolean);
+      const matches = (text) => words.every(w => text.includes(w));
+      return menuData.map(cat => ({
+        category: cat.category,
+        items: cat.items.filter(it => matches((it.name + ' ' + it.desc + ' ' + it.tags.join(' ')).toLowerCase()))
+      })).filter(cat => cat.items.length>0);
+    }
+    searchInput.addEventListener('input', (e)=>{
+      const filtered = filterMenu(e.target.value);
+      renderMenu(filtered);
+    });
+
+    reviewBtn.addEventListener('click', ()=>{
+      const lines = Object.values(state.cart);
+      if(lines.length === 0) return;
+      reviewItems.innerHTML = lines.map(({item, qty}) => `
+        <div class="d-row" style="margin-top:6px">
+          <div>${item.name}</div>
+          <div>x${qty}</div>
+          <div style="text-align:right">${formatPrice(item.price*qty)}</div>
+        </div>
+      `).join('');
+      const total = lines.reduce((s,{item,qty}) => s + item.price*qty, 0);
+      reviewTotal.textContent = formatPrice(total);
+      rName.textContent = clientName.value || '—';
+      rPhone.textContent = clientPhone.value || '—';
+      rTable.textContent = clientTable.value || '—';
+      rNotes.textContent = notes.value || '—';
+      successMsg.classList.remove('show');
+      reviewDialog.showModal();
+    });
+    closeDialog.addEventListener('click', ()=> reviewDialog.close());
+
+    
+    confirmBtn.addEventListener('click', ()=>{
+      const order = {
+        client: { name: clientName.value, phone: clientPhone.value, table: clientTable.value },
+        items: Object.values(state.cart).map(({item,qty}) => ({ id:item.id, name:item.name, qty, price:item.price })),
+        notes: notes.value,
+        subtotal: Object.values(state.cart).reduce((s,{item,qty})=>s+item.price*qty,0),
+        time: new Date().toISOString(),
+      };
+      console.log('ORDER:', order);
+      reviewDialog.close();
+      successMsg.classList.add('show');
+    });
+
+   
+    const printbtn = document.getElementById('printBtn');
+    printBtn.addEventListener('click', ()=>{
+      const lines = Object.values(state.cart);
+      const total = lines.reduce((s,{item,qty}) => s + item.price*qty, 0);
+      const html = `
+        <h2>ملخّص الطلب</h2>
+        <div style="margin:6px 0 10px;color:#6b7280">${new Date().toLocaleString('ar-JO')}</div>
+        <div style="display:grid;grid-template-columns:1fr 80px 120px;gap:8px;font-size:14px;font-weight:700"><div>الصنف</div><div>الكمية</div><div style="text-align:right">السعر</div></div>
+        ${lines.map(({item,qty})=>`<div style=\"display:grid;grid-template-columns:1fr 80px 120px;gap:8px;margin-top:6px\"><div>${item.name}</div><div>x${qty}</div><div style=\"text-align:right\">${formatPrice(item.price*qty)}</div></div>`).join('')}
+        <hr style="margin:10px 0"/>
+        <div style="display:flex;justify-content:space-between"><span>الإجمالي</span><b>${formatPrice(total)}</b></div>
+        <div style="background:#f9fafb;padding:10px;border-radius:10px;margin-top:10px;font-size:14px">
+          <div>👤 <b>العميل:</b> ${clientName.value || '—'}</div>
+          <div>📞 <b>الهاتف:</b> ${clientPhone.value || '—'}</div>
+          <div>🍽️ <b>طاولة:</b> ${clientTable.value || '—'}</div>
+          <div>📝 <b>ملاحظات:</b> ${notes.value || '—'}</div>
+        </div>`;
+      document.getElementById('printSummary').innerHTML = html;
+      window.print();
+    });
+
+   
+    function toggleCartDrawer(force){
+      const open = force !== undefined ? force : !cartDrawer.classList.contains('open');
+      if(open){
+        cartDrawer.classList.add('open');
+        backdrop.classList.add('show');
+      }else{
+        cartDrawer.classList.remove('open');
+        backdrop.classList.remove('show');
+      }
+    }
+    toggleCartBtn.addEventListener('click', ()=> toggleCartDrawer());
+    backdrop.addEventListener('click', ()=> toggleCartDrawer(false));
+
+    
+    function init(){
+      renderMenu(menuData);
+      renderCart();
+      updateCartBadge();
+    }
+    init();
+  </script>
+</body>
+</html>
